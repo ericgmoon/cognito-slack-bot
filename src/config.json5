@@ -1,0 +1,35 @@
+{
+  /* VALUES */
+  "max_karma": 1000,
+  "min_karma": -20,
+
+  "max_karma_per_message": 3,
+
+  /* COMMANDS */
+  "command_give_tallied": "^$[user] \\+\\+$", // must extract both $[user] and $[tally]
+  "command_take_tallied": "^${user} --$", // must extract both $[user] and $[tally]
+
+  "command_give_counted": "^$[user] \\+$[n]$", // must extract both $[user] and $[n]
+  "command_take_counted": "^$[user] -$[n]$", // must extract both $[user] and $[n]
+
+  "command_autopromote": "^${botUser} autopromote$",
+  "command_promote": "^${botUser} promote $[user]$",
+  "command_demote": "^${botUser} demote $[user]$",
+
+  /* MESSAGES*/
+
+  "message_give": "given +${deltaKarma} karma to ${user} (total ${totalKarma})", // currently only 1 karma can be given at a time
+  "message_take": "taken ${deltaKarma} karma from ${user} (total ${totalKarma}) :(",
+  "message_exceed_max": "${user} already has too much karma! (max ${maxKarma})",
+  "message_exceed_min": "${user} has no karma left to take!",
+  "message_cant_karma": "sorry, you are not allowed to do that :("
+
+}
+/* available variables (substituted in ${}, out by $[])
+ * user
+ * botUser
+ * deltaKarma
+ * totalKarma
+ * maxKarma
+ * minKarma
+ */

@@ -1,0 +1,21 @@
+{
+  "name": "karma",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "bash build.sh",
+    "clean": "rm -rf dist/",
+    "main": "node dist/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jason Codd",
+  "license": "MIT",
+  "dependencies": {
+    "@slack/bolt": "^3.9.0",
+    "firebase-admin": "^10.0.2"
+  },
+  "devDependencies": {
+    "json5": "^2.2.0"
+  }
+}
