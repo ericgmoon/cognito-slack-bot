@@ -7,7 +7,7 @@
 
   /* COMMANDS */
   "command_give_tallied": "^$[user] \\+\\+$", // must extract both $[user] and $[tally]
-  "command_take_tallied": "^${user} --$", // must extract both $[user] and $[tally]
+  "command_take_tallied": "^$[user] --$", // must extract both $[user] and $[tally]
 
   "command_give_counted": "^$[user] \\+$[n]$", // must extract both $[user] and $[n]
   "command_take_counted": "^$[user] -$[n]$", // must extract both $[user] and $[n]

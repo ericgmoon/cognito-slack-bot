@@ -44,8 +44,25 @@ function replaceMessageVars(message: string, args: { [key: string]: any }): stri
     return message.replace(new RegExp("$[\\w+]", "g"), "\\w+");
 }
 
-function extractMessageVars(message: string, pattern: string): object {
-    const result = {};
+
+//this is harder than i thought whoops
+function extractMessageVars(message: string, pattern: string) {
+    const result: {[key:string]: string} = {};
+    const extractions = new RegExp("\\$\\[\\w+]", "g");
+    const extractionsCopy = new RegExp("\\$\\[\\w+]");
+    let match;
+    while (match = extractions.exec(pattern)) {
+        let pullPattern = pattern.slice(0, match.index).replace(extractionsCopy, "[\\w@<>]+");
+        let value = message.replace(new RegExp(pullPattern), "").match("^[\\w@<>]+");
+        const varName = match[0].slice(2, match[0].length - 1);
+        if (varName.endsWith("user") || varName.endsWith("User")) {
+            result[varName] = value![0].slice(2, value![0].length - 1);
+        } else {
+            result[varName] = value![0];
+        }
+
+    }
+    return result;
 }
 
 async function postToChannel(client: WebClient, channel: string, thread: string, text: string) {
@@ -147,9 +164,8 @@ async function demote(client: WebClient, user: string, team_id: string) {
     await db.collection("servers").doc(team_id).update({"staff": firestore.FieldValue.arrayRemove(user)});
 }
 
-function command_match(text: string, command_literal: string, user: string, botUser: string): boolean {
+function command_match(text: string, command_literal: string, botUser: string): boolean {
     const matches = text.match(new RegExp(replaceMessageVars(command_literal, {
-        "user": user,
         "botUser": botUser
     }), "g"));
     return matches != null && matches.length != 0;
@@ -167,30 +183,7 @@ app.event('message', async ({
 
     console.log(event.text);
 
-
-    const potentialUserIds: RegExpMatchArray | null = event.text.match(new RegExp("<@\\w+>", "g"));
-    if (potentialUserIds == null) { // must at least have target user
-        return;
-    }
-    let taggedUser: string | null = null;
-    try {
-        for (const userId of potentialUserIds) {
-            const target = userId.slice(2, userId.length - 1);
-            if (context.botUserId == target) {
-                continue; //don't need to extract bot tags
-            }
-            await client.users.info({user: target});
-            if (taggedUser == null) {
-                taggedUser = target;
-            } else if (taggedUser != target) {
-                return; // can't tag multiple users
-            }
-        }
-    } catch (e) {
-        return; // can't tag invalid users
-    }
-
-    if (command_match(event.text, config.command_autopromote, taggedUser!, context.botUserId!)) {
+    if (command_match(event.text, config.command_autopromote, context.botUserId!)) {
         if (!(await client.users.info({user: event.user})).user?.is_owner) {
             console.log("not owner");
             return;
@@ -198,35 +191,30 @@ app.event('message', async ({
         await promote_owners(client, event.team!);
         await client.reactions.add({channel: event.channel, name: "thumbsup", timestamp: event.ts})
         return;
-    } else if (command_match(event.text, config.command_promote, taggedUser!, context.botUserId!)) {
+    } else if (command_match(event.text, config.command_promote, context.botUserId!)) {
         if (!(await client.users.info({user: event.user})).user?.is_owner) {
             console.log("not owner");
             return;
         }
-        if (taggedUser == null) return;
-        await promote(client, taggedUser, event.team!);
+        const vars = extractMessageVars(event.text, config.command_promote);
+        await promote(client, vars["user"], event.team!);
         await client.reactions.add({channel: event.channel, name: "thumbsup", timestamp: event.ts})
         return;
-    } else if (command_match(event.text, config.command_demote, taggedUser!, context.botUserId!)) {
+    } else if (command_match(event.text, config.command_demote, context.botUserId!)) {
         if (!(await client.users.info({user: event.user})).user?.is_owner) {
             console.log("not owner");
             return;
         }
-        if (taggedUser == null) return;
-        await demote(client, taggedUser, event.team!);
+        const vars = extractMessageVars(event.text, config.command_promote);
+        await demote(client, vars["user"], event.team!);
         await client.reactions.add({channel: event.channel, name: "thumbsup", timestamp: event.ts})
         return;
-    }
-
-    if (taggedUser == null) return;
-
-    if (event.text.match(replaceMessageVars(config.command_give, {"user": taggedUser, "botUser": context.botUserId}))) {
-        await applyKarmaChange(event.team!, 1, event.user, taggedUser, context.botUserId!, client, event.channel, event.thread_ts ?? event.ts);
-    } else if (event.text.match(replaceMessageVars(config.command_take, {
-        "user": taggedUser,
-        "botUser": context.botUserId
-    }))) {
-        await applyKarmaChange(event.team!, -1, event.user, taggedUser, context.botUserId!, client, event.channel, event.thread_ts ?? event.ts);
+    } else if (command_match(event.text, config.command_give_counted, context.botUserId!)) {
+        const vars = extractMessageVars(event.text, config.command_give_counted);
+        await applyKarmaChange(event.team!, parseInt(vars["n"]), event.user, vars["user"], context.botUserId!, client, event.channel, event.thread_ts ?? event.ts);
+    } else if (command_match(event.text, config.command_take_counted, context.botUserId!)) {
+        const vars = extractMessageVars(event.text, config.command_give_counted);
+        await applyKarmaChange(event.team!, parseInt(vars["n"]), event.user, vars["user"], context.botUserId!, client, event.channel, event.thread_ts ?? event.ts);
     }
 });
 
