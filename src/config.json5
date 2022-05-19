@@ -3,11 +3,14 @@
   "max_karma": 1000,
   "min_karma": -20,
 
-  "max_karma_per_message": 3,
+  "max_karma_give_per_message": 3,
+  "max_karma_take_per_message": -3,
 
   /* COMMANDS */
-  "command_give_tallied": "^$[user] \\+\\+$", // must extract both $[user] and $[tally]
-  "command_take_tallied": "^$[user] --$", // must extract both $[user] and $[tally]
+  "command_give_tallied": "^$[user] \\+$[tally]$", // must extract both $[user] and $[tally]
+  "command_give_tallied_tally": "+",
+  "command_take_tallied": "^$[user] -$[tally]$", // must extract both $[user] and $[tally]
+  "command_take_tallied_tally": "-",
 
   "command_give_counted": "^$[user] \\+$[n]$", // must extract both $[user] and $[n]
   "command_take_counted": "^$[user] -$[n]$", // must extract both $[user] and $[n]
@@ -18,11 +21,13 @@
 
   /* MESSAGES*/
 
-  "message_give": "given +${deltaKarma} karma to ${user} (total ${totalKarma})", // currently only 1 karma can be given at a time
+  "message_give": "given +${deltaKarma} karma to ${user} (total ${totalKarma})",
   "message_take": "taken ${deltaKarma} karma from ${user} (total ${totalKarma}) :(",
-  "message_exceed_max": "${user} already has too much karma! (max ${maxKarma})",
-  "message_exceed_min": "${user} has no karma left to take!",
-  "message_cant_karma": "sorry, you are not allowed to do that :("
+  "message_exceed_max": "giving ${deltaKarma} to ${user} would give them too much karma! (max ${maxKarma})",
+  "message_exceed_min": "taking ${deltaKarma} from ${user} would leave them with too little karma! (max ${minKarma})",
+  "message_cant_karma": "sorry, you are not allowed to do that :(",
+  "message_exceed_give_per_message": "sorry, you cannot give this much karma in one go :(",
+  "message_exceed_take_per_message": "sorry, you cannot take this much karma in one go :("
 
 }
 /* available variables (substituted in ${}, out by $[])
