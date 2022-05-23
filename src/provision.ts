@@ -43,7 +43,7 @@ const app = new App({
                     "S": teamId
                 },
                 "staff": {
-                    "L": []
+                    "SS": []
                 },
                 "karma": {
                     "M": {}

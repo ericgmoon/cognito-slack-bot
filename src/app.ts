@@ -226,10 +226,10 @@ async function promote(client: WebClient, user: string, team_id: string) {
                 "S": team_id
             }
         },
-        UpdateExpression: "SET staff=list_append(staff, :s)",
+        UpdateExpression: "ADD staff :s",
         ExpressionAttributeValues: {
             ":s": {
-                "S": user
+                "SS": [user]
             }
         }
     }));
@@ -246,7 +246,7 @@ async function demote(client: WebClient, user: string, team_id: string) {
         UpdateExpression: "DELETE staff :s",
         ExpressionAttributeValues: {
             ":s": {
-                "S": user
+                "SS": [user]
             }
         }
     }));
