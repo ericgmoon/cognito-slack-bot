@@ -26,7 +26,9 @@ const app = new App({
 });
 
 (async () => {
-    const teamId = (await app.client.auth.test())['team_id'];
+    const auth = (await app.client.auth.test());
+    const teamId = auth['team_id'];
+    const userId = auth['user_id'];
 
     if (((await dynamoDbClient.send(new GetItemCommand({
         TableName: "karma",
@@ -43,7 +45,7 @@ const app = new App({
                     "S": teamId
                 },
                 "staff": {
-                    "SS": []
+                    "SS": [userId]
                 },
                 "karma": {
                     "M": {}
