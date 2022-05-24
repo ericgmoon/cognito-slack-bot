@@ -71,7 +71,6 @@ function extractMessageVars(message: string, pattern: string) {
         } else {
             result[varName] = value![0];
         }
-
     }
     return result;
 }

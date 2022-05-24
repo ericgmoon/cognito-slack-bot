@@ -7,13 +7,13 @@
   "max_karma_take_per_message": -4,
 
   /* COMMANDS */
-  "command_give_tallied": "^$[user] \\+$[tally]$", // must extract both $[user] and $[tally]
+  "command_give_tallied": "$[user] \\+$[tally]", // must extract both $[user] and $[tally]
   "command_give_tallied_tally": "+",
-  "command_take_tallied": "^$[user] -$[tally]$", // must extract both $[user] and $[tally]
+  "command_take_tallied": "$[user] -$[tally]", // must extract both $[user] and $[tally]
   "command_take_tallied_tally": "-",
 
-  "command_give_counted": "^$[user] \\+$[n]$", // must extract both $[user] and $[n]
-  "command_take_counted": "^$[user] -$[n]$", // must extract both $[user] and $[n]
+  "command_give_counted": "$[user] \\+$[n]", // must extract both $[user] and $[n]
+  "command_take_counted": "$[user] -$[n]", // must extract both $[user] and $[n]
 
   "command_autopromote": "^${botUser} autopromote$",
   "command_promote": "^${botUser} promote $[user]$",
