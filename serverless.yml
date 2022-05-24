@@ -2,6 +2,7 @@ service: serverless-bolt-js
 frameworkVersion: '3'
 provider:
   name: aws
+  region: ap-southeast-2
   runtime: nodejs14.x
   environment:
     SLACK_SIGNING_SECRET: ${env:SLACK_SIGNING_SECRET}

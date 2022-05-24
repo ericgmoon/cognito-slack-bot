@@ -15,7 +15,7 @@ import {AwsCallback, AwsEvent} from "@slack/bolt/dist/receivers/AwsLambdaReceive
 
 
 const dynamoDbClient = new DynamoDBClient({
-    region: "us-east-1"
+    region: "ap-southeast-2"
 });
 
 const awsLambdaReceiver = new AwsLambdaReceiver({
@@ -121,24 +121,6 @@ async function applyKarmaChange(team: string, deltaKarma: number, author: string
             minKarma: config.min_karma,
             max_karma: config.max_karma
         }));
-    } else if (deltaKarma > config.max_karma_give_per_message) {
-        postPromise = postToChannel(client, channel, thread, replaceMessageVars(config.message_exceed_give_per_message, {
-            deltaKarma: deltaKarma,
-            totalKarma: currentKarma,
-            user: target,
-            botUser: botUser,
-            minKarma: config.min_karma,
-            max_karma: config.max_karma
-        }));
-    } else if (deltaKarma < config.max_karma_take_per_message) {
-        postPromise = postToChannel(client, channel, thread, replaceMessageVars(config.message_exceed_take_per_message, {
-            deltaKarma: deltaKarma,
-            totalKarma: currentKarma,
-            user: target,
-            botUser: botUser,
-            minKarma: config.min_karma,
-            max_karma: config.max_karma
-        }));
     } else if (currentKarma + deltaKarma > config.max_karma) {
         console.log("giving too much karma");
         postPromise = postToChannel(client, channel, thread, replaceMessageVars(config.message_exceed_max, {
@@ -161,16 +143,38 @@ async function applyKarmaChange(team: string, deltaKarma: number, author: string
             maxKarma: config.max_karma
         }));
     } else {
-        console.log("applying karma");
+         if (deltaKarma > config.max_karma_give_per_message) {
+            deltaKarma = config.max_karma_give_per_message;
+            postPromise = postToChannel(client, channel, thread, replaceMessageVars(config.message_exceed_give_per_message, {
+                deltaKarma: deltaKarma,
+                totalKarma: currentKarma + deltaKarma,
+                user: target,
+                botUser: botUser,
+                minKarma: config.min_karma,
+                max_karma: config.max_karma
+            }));
+        } else if (deltaKarma < config.max_karma_take_per_message) {
+            deltaKarma = config.max_karma_take_per_message;
+            postPromise = postToChannel(client, channel, thread, replaceMessageVars(config.message_exceed_take_per_message, {
+                deltaKarma: deltaKarma,
+                totalKarma: currentKarma + deltaKarma,
+                user: target,
+                botUser: botUser,
+                minKarma: config.min_karma,
+                max_karma: config.max_karma
+            }));
+        } else {
+            postPromise = postToChannel(client, channel, thread, replaceMessageVars(deltaKarma > 0 ? config.message_give : config.message_take, {
+                deltaKarma: deltaKarma,
+                totalKarma: currentKarma + deltaKarma,
+                user: target,
+                botUser: botUser,
+                minKarma: config.min_karma,
+                maxKarma: config.max_karma
+            }));
+        }
 
-        postPromise = postToChannel(client, channel, thread, replaceMessageVars(deltaKarma > 0 ? config.message_give : config.message_take, {
-            deltaKarma: deltaKarma,
-            totalKarma: currentKarma + deltaKarma,
-            user: target,
-            botUser: botUser,
-            minKarma: config.min_karma,
-            maxKarma: config.max_karma
-        }));
+        console.log("applying karma");
         await dynamoDbClient.send(new UpdateItemCommand({
             "TableName": "karma",
             Key: {

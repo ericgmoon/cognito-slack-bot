@@ -15,7 +15,7 @@ import {AwsCallback, AwsEvent} from "@slack/bolt/dist/receivers/AwsLambdaReceive
 
 
 const dynamoDbClient = new DynamoDBClient({
-    region: "us-east-1"
+    region: "ap-southeast-2"
 });
 
 
