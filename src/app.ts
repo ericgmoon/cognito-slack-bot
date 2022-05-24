@@ -64,7 +64,7 @@ function extractMessageVars(message: string, pattern: string) {
     let match;
     while (match = extractions.exec(pattern)) {
         let pullPattern = pattern.slice(0, match.index).replace(extractionsCopy, `[\\w@<>${rescape(config.command_take_tallied_tally)}${rescape(config.command_give_tallied_tally)}]+`);
-        let value = message.replace(new RegExp(pullPattern), "").match(`^[\\w@<>${rescape(config.command_take_tallied_tally)}${rescape(config.command_give_tallied_tally)}]+`);
+        let value = message.replace(new RegExp(pullPattern), "").match(`[\\w@<>${rescape(config.command_take_tallied_tally)}${rescape(config.command_give_tallied_tally)}]+`);
         const varName = match[0].slice(2, match[0].length - 1);
         if (varName.endsWith("user") || varName.endsWith("User")) {
             result[varName] = value![0].slice(2, value![0].length - 1);
