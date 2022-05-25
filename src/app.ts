@@ -55,9 +55,8 @@ function replaceMessageVars(message: string, args: { [key: string]: any }): stri
     return message.replace(new RegExp("\\$\\[\\w+]", "g"), `[\\w@<>${rescape(config.command_take_tallied_tally)}${rescape(config.command_give_tallied_tally)}]+`);
 }
 
-
 //this is harder than i thought whoops
-function extractMessageVars(message: string, pattern: string) {
+function extractMessageVarsLegacy(message: string, pattern: string) {
     const result: { [key: string]: string } = {};
     const extractions = new RegExp("\\$\\[\\w+]", "g");
     const extractionsCopy = new RegExp("\\$\\[\\w+]");
@@ -66,12 +65,39 @@ function extractMessageVars(message: string, pattern: string) {
         let pullPattern = pattern.slice(0, match.index).replace(extractionsCopy, `[\\w@<>${rescape(config.command_take_tallied_tally)}${rescape(config.command_give_tallied_tally)}]+`);
         let value = message.replace(new RegExp(pullPattern), "").match(`[\\w@<>${rescape(config.command_take_tallied_tally)}${rescape(config.command_give_tallied_tally)}]+`);
         const varName = match[0].slice(2, match[0].length - 1);
-        if (varName.endsWith("user") || varName.endsWith("User")) {
-            result[varName] = value![0].slice(2, value![0].length - 1);
-        } else {
-            result[varName] = value![0];
-        }
+        result[varName] = value![0];
     }
+    return result;
+}
+
+//this is harder than i thought whoops
+function extractMessageVars(message: string, pattern: string, regexPattern: string) {
+    const result: {[key: string]: string} = {};
+    // Run regex pattern
+    console.log(`looking for: ${regexPattern}`);
+    let value: any = message.match(new RegExp(regexPattern));
+    if(!value) return result;
+    console.log(`value: ${value}`)
+    // Extracts the varName from the pattern
+    const extractions = new RegExp("\\$\\[\\w+]", "g");
+    const extractionsCopy = new RegExp("\\$\\[\\w+]");
+    let match;
+    let i = 0;
+    while (match = extractions.exec(pattern)) {
+        console.log(`match: ${match}`)
+        const varName = match[0].slice(2, match[0].length - 1);
+        if (varName.endsWith("user") || varName.endsWith("User")) {
+            // remove <@ and > for usernames
+            result[varName] = value![i].slice(2, value![i].length - 1);
+        } else if (varName === "tally" || varName === "n"){
+            // remove ' +' and ' -', as the first +/- does not count
+            result[varName] = value![i].slice(2, value![i].length);
+        } else {
+            result[varName] = value![i];
+        }
+        i++;
+    }
+    console.log(result);
     return result;
 }
 
@@ -132,7 +158,6 @@ async function applyKarmaChange(team: string, deltaKarma: number, author: string
         }));
     } else if (currentKarma + deltaKarma < config.min_karma) {
         console.log("taking too much karma");
-
         postPromise = postToChannel(client, channel, thread, replaceMessageVars(config.message_exceed_min, {
             deltaKarma: deltaKarma,
             totalKarma: currentKarma,
@@ -197,11 +222,11 @@ async function applyKarmaChange(team: string, deltaKarma: number, author: string
 
 }
 
-async function promote_owners(client: WebClient, team_id: string) {
-    const owners: string[] = []
+async function promote_admins(client: WebClient, team_id: string) {
+    const admins: string[] = []
     for (const member of (await client.users.list({team_id: team_id})).members!) {
-        if (member.is_owner) {
-            owners.push(member.id!);
+        if (member.is_admin) {
+            admins.push(member.id!);
         }
     }
 
@@ -215,7 +240,7 @@ async function promote_owners(client: WebClient, team_id: string) {
         UpdateExpression: "SET staff=:s",
         ExpressionAttributeValues: {
             ":s": {
-                "L": (owners.map(owner => ({"S": owner})))
+                "L": (admins.map(admin => ({"S": admin})))
             }
         }
     }));
@@ -274,11 +299,11 @@ app.event('message', async ({
     console.log(event.text);
 
     if (command_match(event.text, config.command_autopromote, context.botUserId!)) {
-        if (!(await client.users.info({user: event.user})).user?.is_owner) {
-            console.log("not owner");
+        if (!(await client.users.info({user: event.user})).user?.is_admin) {
+            console.log("not admin");
             return;
         }
-        await promote_owners(client, event.team!);
+        await promote_admins(client, event.team!);
         await client.reactions.add({channel: event.channel, name: "thumbsup", timestamp: event.ts});
         return;
     } else if (command_match(event.text, config.command_promote, context.botUserId!)) {
@@ -286,7 +311,7 @@ app.event('message', async ({
             console.log("not owner");
             return;
         }
-        const vars = extractMessageVars(event.text, config.command_promote);
+        const vars = extractMessageVarsLegacy(event.text, config.command_promote);
         await promote(client, vars["user"], event.team!);
         await client.reactions.add({channel: event.channel, name: "thumbsup", timestamp: event.ts});
         return;
@@ -295,40 +320,38 @@ app.event('message', async ({
             console.log("not owner");
             return;
         }
-        const vars = extractMessageVars(event.text, config.command_promote);
+        const vars = extractMessageVarsLegacy(event.text, config.command_promote);
         await demote(client, vars["user"], event.team!);
         await client.reactions.add({channel: event.channel, name: "thumbsup", timestamp: event.ts});
         return;
     }
 
 
-    if (command_match(event.text, config.command_give_counted, context.botUserId!)) {
+    if (command_match(event.text, config.command_give_counted_regex, context.botUserId!)) {
         console.log("give counted");
-        const vars = extractMessageVars(event.text, config.command_give_counted);
+        const vars = extractMessageVars(event.text, config.command_give_counted, config.command_give_counted_regex);
         if (!isNaN(parseInt(vars["n"]))) {
             await applyKarmaChange(event.team!, parseInt(vars["n"]), event.user, vars["user"], context.botUserId!, client, event.channel, event.thread_ts ?? event.ts);
         }
-    } else if (command_match(event.text, config.command_take_counted, context.botUserId!)) {
+    } else if (command_match(event.text, config.command_take_counted_regex, context.botUserId!)) {
         console.log("take counted");
-        const vars = extractMessageVars(event.text, config.command_take_counted);
+        const vars = extractMessageVars(event.text, config.command_take_counted, config.command_take_counted_regex);
         if (!isNaN(parseInt(vars["n"]))) {
             await applyKarmaChange(event.team!, -parseInt(vars["n"]), event.user, vars["user"], context.botUserId!, client, event.channel, event.thread_ts ?? event.ts);
         }
-    }
-
-
-    if (command_match(event.text, config.command_give_tallied, context.botUserId!)) {
+    } else if (command_match(event.text, config.command_give_tallied_regex, context.botUserId!)) {
         console.log("giving tallied");
-        const vars = extractMessageVars(event.text, config.command_give_tallied);
+        const vars = extractMessageVars(event.text, config.command_give_tallied, config.command_give_tallied_regex);
+        console.log(vars);
         for (let i = 0; i < vars["tally"].length; i++) {
             if (vars["tally"][i] != config.command_give_tallied_tally) {
                 return;
             }
         }
         await applyKarmaChange(event.team!, vars["tally"].length, event.user, vars["user"], context.botUserId!, client, event.channel, event.thread_ts ?? event.ts);
-    } else if (command_match(event.text, config.command_take_tallied, context.botUserId!)) {
+    } else if (command_match(event.text, config.command_take_tallied_regex, context.botUserId!)) {
         console.log("taking tallied");
-        const vars = extractMessageVars(event.text, config.command_take_tallied);
+        const vars = extractMessageVars(event.text, config.command_take_tallied, config.command_take_tallied_regex);
         for (let i = 0; i < vars["tally"].length; i++) {
             if (vars["tally"][i] != config.command_take_tallied_tally) {
                 return;
